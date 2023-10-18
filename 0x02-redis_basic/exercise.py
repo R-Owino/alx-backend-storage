@@ -5,7 +5,7 @@ This module contains a class Cache
 
 import redis
 import uuid
-from typing import Union
+from typing import Union, Callable
 
 
 class Cache:
@@ -45,3 +45,49 @@ class Cache:
             self._redis.set(key, data)
 
         return key
+
+    def get(self, key: str, fn: Callable[[bytes],
+            Union[str, int, None]] = None) -> Union[str, int, None]:
+        """
+        Get a value by key and optionally apply a conversion function
+
+        Args:
+            key (str): The key under which the data is stored
+            fn (Callable[[bytes], Union[str, int, None]]): A callable function
+            to convert the data
+
+        Returns:
+            Union[str, int, None]: The retrieved data
+        """
+        data = self._redis.get(key)
+        if data is not None:
+            if fn is not None:
+                return fn(data)
+            else:
+                return data
+        else:
+            return None
+
+    def get_str(self, key: str) -> str:
+        """
+        Get a string value from Redis by key
+
+        Args:
+            key (str): The key under which the data is stored
+
+        Returns:
+            str: The retrieved string data
+        """
+        return self.get(key, fn=lambda d: d.decode("utf-8"))
+
+    def get_int(self, key: str) -> int:
+        """
+        Get an integer value from Redis by key
+
+        Args:
+            key (str): The key under which the data is stored
+
+        Returns:
+            int: The retrieved integer data
+        """
+        return self.get(key, fn=lambda d: int(d))
