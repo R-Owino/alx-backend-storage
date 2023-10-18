@@ -6,6 +6,27 @@ This module contains a class Cache
 import redis
 import uuid
 from typing import Union, Callable
+from functools import wraps
+
+
+def count_calls(method: Callable) -> Callable:
+    """
+    A decorator to count how many times a method is called.
+    It uses the method's qualified name as a key in Redis.
+
+    Args:
+        method (Callable): The method to be decorated.
+
+    Returns:
+        Callable: The wrapped method.
+    """
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        key = f"{method.__qualname__}"
+        self._redis.incr(key)  # Increment the call count
+        return method(self, *args, **kwargs)  # Call the original method
+
+    return wrapper
 
 
 class Cache:
@@ -25,6 +46,7 @@ class Cache:
         self._redis = redis.Redis(host=host, port=port, db=db)
         self._redis.flushdb()
 
+    @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         Store data in Redis and return a random key.
