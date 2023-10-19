@@ -54,6 +54,31 @@ def call_history(method: Callable) -> Callable:
     return wrapper
 
 
+def replay(fxn: Callable) -> None:
+    """
+    Display the history of calls for a particular function
+    using Redis input and output lists.
+
+    Args:
+        fxn (Callable): The function for which the call history
+        should be displayed.
+
+    Returns:
+        None
+    """
+    mem = Redis()
+    func_name_qual = fxn.__qualname__
+    value = int(mem.get(func_name_qual) or b"0")
+    print(f"{func_name_qual} was called {value} times:")
+    inputs = mem.lrange(f"{func_name_qual}:inputs", 0, -1)
+    outputs = mem.lrange(f"{func_name_qual}:outputs", 0, -1)
+
+    for input_bytes, output_bytes in zip(inputs, outputs):
+        input_string = input_bytes.decode("utf-8")
+        output_string = output_bytes.decode("utf-8")
+        print(f"{func_name_qual}(*{input_string}) -> {output_string}")
+
+
 class Cache:
     """
     A class Cache
